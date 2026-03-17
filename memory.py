@@ -59,7 +59,13 @@ class ReelMemory:
     # ──────────────────────────────────────────────────────────────────
 
     def _init_chroma(self):
-        client = chromadb.PersistentClient(path=CHROMA_DIR)
+        try:
+            client = chromadb.PersistentClient(path=CHROMA_DIR)
+        except Exception:
+            import shutil
+            shutil.rmtree(CHROMA_DIR, ignore_errors=True)
+            Path(CHROMA_DIR).mkdir(parents=True, exist_ok=True)
+            client = chromadb.PersistentClient(path=CHROMA_DIR)
         ef = embedding_functions.DefaultEmbeddingFunction()
         self.collection = client.get_or_create_collection(
             name="reels",
@@ -218,3 +224,4 @@ class ReelMemory:
         cur = self.conn.cursor()
         rows = cur.execute("SELECT msg_id FROM processed_messages").fetchall()
         return [r["msg_id"] for r in rows]
+
