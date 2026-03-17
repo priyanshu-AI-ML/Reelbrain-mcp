@@ -21,7 +21,7 @@ CHROMA_DIR = os.path.join(DATA_DIR, "chroma")
 
 class ReelMemory:
     def __init__(self):
-        Path(DATA_DIR).mkdir(parents=True, exist_ok=True)
+        Path(DATA_DIR).mkdir(parents=True, exist_ok=True, mode=0o777)
         self._init_sqlite()
         self._init_chroma()
 
