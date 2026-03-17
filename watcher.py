@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 ReelBrain Watcher — polls Instagram DMs every 10 minutes and auto-analyzes new reels.
 """
@@ -61,15 +61,26 @@ class DMWatcher:
             logger.warning(f"Could not load processed IDs: {e}")
 
     def login(self):
-        """Log in to Instagram. Raises on failure."""
-        if not IG_USERNAME or not IG_PASSWORD:
-            raise RuntimeError("IG_BOT_USERNAME and IG_BOT_PASSWORD must be set")
-        try:
-            self.loader.login(IG_USERNAME, IG_PASSWORD)
-            logger.info(f"Logged in as @{IG_USERNAME}")
-        except Exception as e:
-            logger.error(f"Instagram login failed: {e}")
-            raise
+        """Log in to Instagram using session from env var, or password as fallback."""
+        if not IG_USERNAME:
+            raise RuntimeError("IG_BOT_USERNAME must be set")
+        session_b64 = os.environ.get("IG_SESSION_B64", "")
+        if session_b64:
+            import base64, tempfile
+            tmp = tempfile.NamedTemporaryFile(delete=False, suffix="_ig_session")
+            tmp.write(base64.b64decode(session_b64))
+            tmp.close()
+            self.loader.load_session_from_file(IG_USERNAME, tmp.name)
+            logger.info(f"Loaded session for @{IG_USERNAME} from env var")
+        else:
+            if not IG_PASSWORD:
+                raise RuntimeError("IG_BOT_PASSWORD or IG_SESSION_B64 must be set")
+            try:
+                self.loader.login(IG_USERNAME, IG_PASSWORD)
+                logger.info(f"Logged in as @{IG_USERNAME} via password")
+            except Exception as e:
+                logger.error(f"Instagram login failed: {e}")
+                raise
 
     async def _process_dm(self, thread, msg):
         """Process a single DM message — extract and analyze any reel URLs."""
@@ -128,3 +139,5 @@ class DMWatcher:
 if __name__ == "__main__":
     watcher = DMWatcher()
     asyncio.run(watcher.run())
+
+
